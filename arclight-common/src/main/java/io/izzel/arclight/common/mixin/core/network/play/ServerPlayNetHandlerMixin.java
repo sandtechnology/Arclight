@@ -43,7 +43,30 @@ import net.minecraft.network.IPacket;
 import net.minecraft.network.NetworkManager;
 import net.minecraft.network.PacketThreadUtil;
 import net.minecraft.network.play.ServerPlayNetHandler;
-import net.minecraft.network.play.client.*;
+import net.minecraft.network.play.client.CAnimateHandPacket;
+import net.minecraft.network.play.client.CChatMessagePacket;
+import net.minecraft.network.play.client.CClickWindowPacket;
+import net.minecraft.network.play.client.CCloseWindowPacket;
+import net.minecraft.network.play.client.CConfirmTeleportPacket;
+import net.minecraft.network.play.client.CConfirmTransactionPacket;
+import net.minecraft.network.play.client.CCreativeInventoryActionPacket;
+import net.minecraft.network.play.client.CCustomPayloadPacket;
+import net.minecraft.network.play.client.CEditBookPacket;
+import net.minecraft.network.play.client.CEnchantItemPacket;
+import net.minecraft.network.play.client.CEntityActionPacket;
+import net.minecraft.network.play.client.CHeldItemChangePacket;
+import net.minecraft.network.play.client.CKeepAlivePacket;
+import net.minecraft.network.play.client.CMoveVehiclePacket;
+import net.minecraft.network.play.client.CPlayerAbilitiesPacket;
+import net.minecraft.network.play.client.CPlayerDiggingPacket;
+import net.minecraft.network.play.client.CPlayerPacket;
+import net.minecraft.network.play.client.CPlayerTryUseItemOnBlockPacket;
+import net.minecraft.network.play.client.CPlayerTryUseItemPacket;
+import net.minecraft.network.play.client.CResourcePackStatusPacket;
+import net.minecraft.network.play.client.CSelectTradePacket;
+import net.minecraft.network.play.client.CSpectatePacket;
+import net.minecraft.network.play.client.CUpdateSignPacket;
+import net.minecraft.network.play.client.CUseEntityPacket;
 import net.minecraft.network.play.server.SChatPacket;
 import net.minecraft.network.play.server.SConfirmTransactionPacket;
 import net.minecraft.network.play.server.SDisconnectPacket;
@@ -321,6 +344,7 @@ public abstract class ServerPlayNetHandlerMixin implements ServerPlayNetHandlerB
                     this.netManager.sendPacket(new SMoveVehiclePacket(entity));
                     return;
                 }
+                Location currentPos=getPlayer().getLocation();
                 boolean flag = worldserver.hasNoCollisions(entity, entity.getBoundingBox().shrink(0.0625));
                 d7 = d4 - this.lowestRiddenX1;
                 d8 = d5 - this.lowestRiddenY1 - 1.0E-6;
@@ -349,6 +373,14 @@ public abstract class ServerPlayNetHandlerMixin implements ServerPlayNetHandlerB
                     return;
                 }
                 Player player = this.getPlayer();
+                if(!hasMoved){
+                    lastPosX = currentPos.getX();
+                    lastPosY = currentPos.getY();
+                    lastPosZ = currentPos.getZ();
+                    lastYaw = currentPos.getYaw();
+                    lastPitch = currentPos.getPitch();
+                    hasMoved = true;
+                }
                 Location from = new Location(player.getWorld(), this.lastPosX, this.lastPosY, this.lastPosZ, this.lastYaw, this.lastPitch);
                 Location to = player.getLocation().clone();
                 to.setX(packetplayinvehiclemove.getX());
@@ -364,7 +396,8 @@ public abstract class ServerPlayNetHandlerMixin implements ServerPlayNetHandlerB
                     this.lastPosZ = to.getZ();
                     this.lastYaw = to.getYaw();
                     this.lastPitch = to.getPitch();
-                    if (from.getX() != Double.MAX_VALUE) {
+                    //Spigot - Fires all the PlayerMoveEvent
+                    if (true) {
                         Location oldTo = to.clone();
                         PlayerMoveEvent event = new PlayerMoveEvent(player, from, to);
                         this.server.getPluginManager().callEvent(event);
