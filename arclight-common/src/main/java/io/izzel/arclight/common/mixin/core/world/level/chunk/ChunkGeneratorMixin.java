@@ -3,10 +3,13 @@ package io.izzel.arclight.common.mixin.core.world.level.chunk;
 import io.izzel.arclight.common.bridge.core.world.IWorldBridge;
 import io.izzel.arclight.common.bridge.core.world.WorldBridge;
 import io.izzel.arclight.common.bridge.core.world.level.levelgen.ChunkGeneratorBridge;
+import io.izzel.arclight.common.mod.ArclightMod;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.SectionPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.StructureManager;
 import net.minecraft.world.level.WorldGenLevel;
@@ -54,6 +57,18 @@ public abstract class ChunkGeneratorMixin implements ChunkGeneratorBridge {
     @Inject(method = "tryGenerateStructure", cancellable = true, locals = LocalCapture.CAPTURE_FAILHARD, at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/StructureManager;setStartForStructure(Lnet/minecraft/core/SectionPos;Lnet/minecraft/world/level/levelgen/structure/Structure;Lnet/minecraft/world/level/levelgen/structure/StructureStart;Lnet/minecraft/world/level/chunk/StructureAccess;)V"))
     private void arclight$structureSpawn(StructureSet.StructureSelectionEntry p_223105_, StructureManager manager, RegistryAccess registryAccess, RandomState p_223108_, StructureTemplateManager p_223109_, long p_223110_, ChunkAccess p_223111_, ChunkPos chunkPos, SectionPos p_223113_, CallbackInfoReturnable<Boolean> cir,
                                          Structure structure, int i, HolderSet<Biome> holderset, Predicate<Holder<Biome>> predicate, StructureStart structurestart) {
+        if (Bukkit.isPrimaryThread()) {
+            ArclightMod.LOGGER.warn("Structure " + structure.type() + "(class name=" + structure.getClass().getName() + ") is spawning on main thread, ignoring AsyncStructureSpawnEvent firing...");
+            return;
+        }
+        if (registryAccess.registryOrThrow(Registries.STRUCTURE).getKey(structure) == null) {
+            ArclightMod.LOGGER.warn("Structure " + structure + "(class name=" + structure.getClass().getName() + ") is not registered into minecraft registry, ignoring AsyncStructureSpawnEvent firing...");
+            return;
+        }
+        if (BuiltInRegistries.STRUCTURE_TYPE.getKey(structure.type()) == null) {
+            ArclightMod.LOGGER.warn("Structure type " + structure.type() + "(class name=" + structure.type().getClass().getName() + ") is not registered into minecraft registry, ignoring AsyncStructureSpawnEvent firing...");
+            return;
+        }
         var box = structurestart.getBoundingBox();
         var event = new org.bukkit.event.world.AsyncStructureSpawnEvent(((WorldBridge) ((IWorldBridge) manager.level).bridge$getMinecraftWorld()).bridge$getWorld(), CraftStructure.minecraftToBukkit(structure, registryAccess), new org.bukkit.util.BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()), chunkPos.x, chunkPos.z);
         Bukkit.getPluginManager().callEvent(event);
